@@ -2,6 +2,6 @@
 #define CONFIG_H
 
 #define PLATFORM integratorcp
-#define A B
+#define ARCH ARMv7
 
 #endif

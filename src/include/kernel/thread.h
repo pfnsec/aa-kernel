@@ -6,11 +6,15 @@
 #include "kernel/console.h"
 
 
+#define DEFAULT_STACK_SIZE 4096
+
+
 typedef struct thread_t {
 	thread_state_t  *state;
 	struct thread_t *parent;
 	struct thread_t *child;
 	struct thread_t *next;
+	int ret_code; //return code of thread_func()
 } thread_t;
 
 thread_t *current_thread;

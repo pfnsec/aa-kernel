@@ -7,7 +7,7 @@ extern uint32_t _seg_data;
 #define MEM_BEGIN &_seg_data
 
 #ifndef MEM_END //platform.h
-#define MEM_END (MEM_BEGIN + 0x10000000)
+#define MEM_END (MEM_BEGIN + 0x08000000)
 #endif
 
 
@@ -47,7 +47,8 @@ uint32_t split(alloc_t *entry, uint32_t bytes) {
 	new_entry->next = entry->next;
 	entry->next = new_entry;
 
-	entry->size -= new_entry->size + sizeof(alloc_t);
+	//entry->size -= new_entry->size + sizeof(alloc_t);
+	entry->size = bytes;
 	return new_entry->size;
 }
 
@@ -61,6 +62,7 @@ void print_alloc_table() {
 		puthex_32((uint32_t) cur->address);
 		puts(" : ");
 		puthex_32((uint32_t) cur->size);
+		if(cur->free) puts(" (free)\n");
 		putc('\n');
 	}
 }
@@ -73,9 +75,16 @@ void *malloc(uint32_t size) {
 		//iterate until we find a free block large enough
 		if(cur->free != 1 || cur->size < (size + sizeof(alloc_t)))
 			continue;
-		split(cur, size);
+
+		if(split(cur, size) == 0) {
+			continue;
+		}
+		cur->free = 0;
 		return cur->address;
 	}
+	puts("Alloc of size 0x");
+	puthex_32(size);
+	puts(" failed!\n");
 	return 0;
 }
 

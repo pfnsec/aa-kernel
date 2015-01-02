@@ -22,4 +22,6 @@ void schedule_thread(thread_t *thread);
 
 thread_t *next_thread(sched_table *sched);
 
+void yield();
+
 #endif

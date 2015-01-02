@@ -24,5 +24,13 @@ void pl011_putc(pl011_reg *, char c);
 	#define UART0 (pl011_reg *)(0x16000000)
 	#define UART1 (pl011_reg *)(0x17000000)
 
+#elif platform == virt
+
+	#define UART0 (pl011_reg *)(0x09000000)
+
+#elif platform == foundation
+
+	#define UART0 (pl011_reg *)(0x1C090000)
+
 #endif
 #endif

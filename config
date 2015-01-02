@@ -1,5 +1,2 @@
-PLATFORM  =  integratorcp
-
-ARCH=
-
-A=B
+PLATFORM=integratorcp
+ARCH=ARMv7
