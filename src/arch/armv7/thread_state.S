@@ -1,7 +1,6 @@
 #include "config.h"
 
-
-#if ARCH == ARMv7
+#if ARCH == armv7
 //thread_state_t * of the currently running thread
 .global current_thread_state
 

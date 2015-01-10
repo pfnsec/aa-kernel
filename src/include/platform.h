@@ -5,6 +5,10 @@
 #if (PLATFORM == integratorcp)  || (PLATFORM == virt)
 	#define CONSOLE PL011
 #endif
-	#define CONSOLE PL011
+
+#if (ARCH == i386)
+	#define PLATFORM pc
+	#define CONSOLE vga
+#endif
 
 #endif

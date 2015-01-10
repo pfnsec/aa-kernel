@@ -2,6 +2,8 @@
 #include "config.h"
 #include "drivers/serial/pl011.h"
 
+#if CONSOLE == PL011
+
 void pl011_putc(pl011_reg *dev, char c) {
 	//spin until the FIFO has room
 	while(dev->flags & TX_FIFO_FULL);
@@ -15,3 +17,5 @@ char pl011_getc(pl011_reg *dev) {
 
 	return dev->data;
 }
+
+#endif

@@ -3,36 +3,23 @@
 #include "kernel/thread.h"
 #include "kernel/sched.h"
 
+void test_thread() {
+	while(1) {
+		puts("test_thread()\n");
+		yield();
+	}
+}
+
 void kmain() {
-	puts("kmain()\n");
-	schedule_thread(create_thread(current_thread));
-	schedule_thread(create_thread(current_thread));
-	schedule_thread(create_thread(current_thread));
-	schedule_thread(create_thread(current_thread));
-	schedule_thread(create_thread(current_thread));
-	schedule_thread(create_thread(current_thread));
+	thread_t *test;
 
-	puthex_32((uint32_t)next_thread(pri_table));
-	puts("\n");
-	puthex_32((uint32_t)next_thread(pri_table));
-	puts("\n");
-	puthex_32((uint32_t)next_thread(pri_table));
-	puts("\n");
-	puthex_32((uint32_t)next_thread(pri_table));
-	puts("\n");
-	puthex_32((uint32_t)next_thread(pri_table));
-	puts("\n");
-	puthex_32((uint32_t)next_thread(pri_table));
-	puts("\n");
-	puthex_32((uint32_t)next_thread(pri_table));
-	puts("\n");
-	puthex_32((uint32_t)next_thread(pri_table));
-	puts("\n");
-	puthex_32((uint32_t)next_thread(pri_table));
-	puts("\n");
-	puthex_32((uint32_t)next_thread(pri_table));
-	puts("\n");
-	puthex_32((uint32_t)next_thread(pri_table));
-	puts("\n");
+	test = create_thread(current_thread);
+	create_thread_state(test, test_thread, 0, 0);
 
+	schedule_thread(test);
+
+	while(1) {
+		puts("main_thread()\n");
+		yield();
+	}
 }

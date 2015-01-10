@@ -1,7 +1,7 @@
 .text
-//#include "config.h"
+#include "config.h"
 
-//#if ARCH == ARMv7
+#if ARCH == armv7
 interrupt_vector_table:
 	b . // Reset
 	b . 
@@ -28,23 +28,5 @@ _start:
 
 _swi_dispatch:
 	bx lr
-//#elif ARCH == ARMv8
-/*
-_stack_bot:
-.global _stack_bot
 
-.skip 0x10000 
-_stack:
-.global _stack
-
-_start:
-	.global _start
-	ldr x0, =_stack
-	mov x29, x0 
-	mov sp, x0 
-	b init
-
-_hang: 
-	b _hang
-*/
-//#endif
+#endif

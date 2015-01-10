@@ -1,13 +1,13 @@
 #ifndef THREAD_STATE_H
 #define THREAD_STATE_H
 
-#if ARCH == ARMv7
+#if ARCH == armv7
 
 typedef struct thread_state_t {
 	uint32_t reg[16];
 } __attribute__((packed)) thread_state_t;
 
-#elif ARCH == ARMv8
+#elif ARCH == armv8
 
 typedef struct thread_state_t {
 	uint32_t reg[32];
