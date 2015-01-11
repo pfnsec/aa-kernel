@@ -13,7 +13,7 @@ export CFLAGS=-Wall -g -nostdlib -ffreestanding -Isrc/include \
 export LDFLAGS=-Tlink/link-armv7.ld -nostdlib
 export ASFLAGS=-mcpu='cortex-a8' -Isrc/include #-fdiagnostics-color=always
 
-export SOURCES:=$(shell find src/arch/armv7 -type f -name '*.S')
+export ASM_SOURCES:=$(shell find src/arch/armv7 -type f -name '*.S')
 
 else
 ifeq ($(ARCH),armv8)
@@ -30,7 +30,7 @@ export LDFLAGS=-Tlink/link-armv8.ld -nostdlib
 export ASFLAGS=-march='armv8-a' -Isrc/include -ffreestanding -nostdlib \
 	-fdiagnostics-color=always
 
-export SOURCES:=$(shell find src/arch/armv8 -type f -name '*.S')
+export ASM_SOURCES:=$(shell find src/arch/armv8 -type f -name '*.S')
 
 else
 ifeq ($(ARCH),i386)
@@ -45,7 +45,7 @@ export LDFLAGS=-Tlink/link-i386.ld -nostdlib
 export ASFLAGS=-march=i486 -m32 -Isrc/include -ffreestanding -nostdlib \
 	-fdiagnostics-color=always
 
-export SOURCES:=$(shell find src/arch/i386 -type f -name '*.S')
+export ASM_SOURCES:=$(shell find src/arch/i386 -type f -name '*.S')
 
 endif
 endif
@@ -53,19 +53,20 @@ endif
 
 export KERNEL_BINARY=kernel.elf
 
-export SOURCES+=$(shell find src/ -type f -name '*.c')
-export OBJECTS:=$(patsubst %.c,%.o,$(patsubst %.S,%.o,$(SOURCES)))
+export C_SOURCES:=$(shell find src/ -type f -name '*.c')
+export OBJECTS:=$(patsubst %.c,%.o,$(C_SOURCES))
+export OBJECTS+=$(patsubst %.S,%.o,$(ASM_SOURCES))
 
 all: $(KERNEL_BINARY)
 
-$(KERNEL_BINARY): $(OBJECTS) $(SOURCES) 
+$(KERNEL_BINARY): $(OBJECTS) $(ASM_SOURCES) link/link-$(ARCH).ld
 	$(LD) $(LDFLAGS) $(OBJECTS) -o $@
 
-.c: src/include/config.h 
-	$(CC) $(CFLAGS) -c $@
+%.o: %.c src/include/config.h 
+	$(CC) $(CFLAGS) -c $< -o $@
 
-.S:
-	$(AS) $(ASFLAGS) -c $@
+%.o: %.S src/include/config.h 
+	$(AS) $(ASFLAGS) -c $< -o $@
 
 
 clean:
