@@ -10,7 +10,7 @@ export AS=$(PREFIX)gcc
 export CFLAGS=-Wall -g -nostdlib -ffreestanding -Isrc/include \
 	-mcpu='cortex-a8' -mfpu='neon' -fdiagnostics-color=always #-funsafe-math-optimizations	
 
-export LDFLAGS=-Tlink.ld -nostdlib
+export LDFLAGS=-Tlink/link-armv7.ld -nostdlib
 export ASFLAGS=-mcpu='cortex-a8' -Isrc/include #-fdiagnostics-color=always
 
 export SOURCES:=$(shell find src/arch/armv7 -type f -name '*.S')
@@ -26,7 +26,7 @@ export AS=$(PREFIX)gcc
 export CFLAGS=-Wall -g -nostdlib -ffreestanding -Isrc/include \
 	-march='armv8-a'  -funsafe-math-optimizations -fdiagnostics-color=always
 
-export LDFLAGS=-Tlink.ld -nostdlib
+export LDFLAGS=-Tlink/link-armv8.ld -nostdlib
 export ASFLAGS=-march='armv8-a' -Isrc/include -ffreestanding -nostdlib \
 	-fdiagnostics-color=always
 
@@ -34,15 +34,15 @@ export SOURCES:=$(shell find src/arch/armv8 -type f -name '*.S')
 
 else
 ifeq ($(ARCH),i386)
-	export CC=gcc
-	export LD=ld
-	export AS=gcc
+	export CC=clang
+	export LD=i686-elf-ld
+	export AS=clang
 
 export CFLAGS=-Wall -g -nostdlib -ffreestanding -Isrc/include \
-	-mcpu=i486 -m32
+	-march=i486 -m32
 
-export LDFLAGS=-Tlink.ld -nostdlib 
-export ASFLAGS=-march=i486 -Isrc/include -ffreestanding -nostdlib \
+export LDFLAGS=-Tlink/link-i386.ld -nostdlib 
+export ASFLAGS=-march=i486 -m32 -Isrc/include -ffreestanding -nostdlib \
 	-fdiagnostics-color=always
 
 export SOURCES:=$(shell find src/arch/i386 -type f -name '*.S')
@@ -58,12 +58,14 @@ export OBJECTS:=$(patsubst %.c,%.o,$(patsubst %.S,%.o,$(SOURCES)))
 
 all: $(KERNEL_BINARY)
 
-$(KERNEL_BINARY): $(OBJECTS) 
+$(KERNEL_BINARY): $(OBJECTS) $(SOURCES) 
 	$(LD) $(LDFLAGS) $(OBJECTS) -o $@
 
 .c: src/include/config.h 
-	$(warning $(SOURCES))
 	$(CC) $(CFLAGS) -c $@
+
+.S:
+	$(AS) $(ASFLAGS) -c $@
 
 
 clean:

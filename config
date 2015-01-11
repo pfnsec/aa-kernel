@@ -1,2 +1,2 @@
-PLATFORM=integratorcp
-ARCH=armv7
+PLATFORM=pc
+ARCH=i386
