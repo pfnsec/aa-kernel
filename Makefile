@@ -36,14 +36,14 @@ else
 ifeq ($(ARCH),i386)
 	export CC=clang
 	export LD=i686-elf-ld
-	export AS=clang
+	export AS=i686-elf-as
 
 export CFLAGS=-Wall -g -nostdlib -ffreestanding -Isrc/include \
-	-march=i486 -m32
+	-march=i486 -target i686-elf
 
 export LDFLAGS=-Tlink/link-i386.ld -nostdlib 
-export ASFLAGS=-march=i486 -m32 -Isrc/include -ffreestanding -nostdlib \
-	-fdiagnostics-color=always
+#export ASFLAGS=-march=i486 -Isrc/include -ffreestanding -nostdlib -target i686-elf
+export ASFLAGS=-march=i486 -Isrc/include -nostdlib 
 
 export ASM_SOURCES:=$(shell find src/arch/i386 -type f -name '*.S')
 
