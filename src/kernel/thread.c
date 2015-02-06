@@ -17,8 +17,9 @@ void init_thread_table() {
 	current_thread->next = 0;
 	current_thread->state = malloc(sizeof(thread_state_t));
 
-	current_thread_state = &current_thread->state->reg; //god dammit
-	save_thread_state();
+//	current_thread_state = current_thread->state->reg; //god dammit
+	current_thread_state = current_thread->state; //god dammit
+//	save_thread_state();
 }
 
 thread_t *create_thread(thread_t *parent) {
@@ -45,40 +46,11 @@ thread_t *create_thread(thread_t *parent) {
 }
 
 
-void thread_exit() {
-	puts("Exiting...\n");
-	yield();
-}
-
-
-//initializes thread->state with registers, allocates a stack, and sets up execution to begin at thread_func
-void create_thread_state(thread_t *thread, int (*thread_func(void *)), void *thread_param, uint32_t stack_size) {
-	int i;
-	void *stack;
-
-	for (i = 0; i < 16; i++) {
-		thread->state->reg[i] = 0;
-	}	
-
-	if(stack_size == 0) {
-		stack = (void *)(malloc(DEFAULT_STACK_SIZE) + DEFAULT_STACK_SIZE);
-	} else {
-		stack = (void *)(malloc(stack_size) + stack_size);
-	}
-
-//	puthex_32(stack);
-//	putc('\n');
-
-	thread->state->reg[0]  = (uint32_t) thread_param;
-	thread->state->reg[13] = (uint32_t) stack;
-//	thread->state->reg[13] = (uint32_t) thread_exit;
-	thread->state->reg[14] = (uint32_t) thread_func;
-}
 
 
 void switch_to_thread(thread_t *thread) {
 	if(thread == 0 || thread->state == 0) {
-		puts("Error: switch_to_thread was called with NULL");
+		puts("Error: switch_to_thread was called with NULL\n");
 		return;
 	}
 /*
@@ -89,7 +61,7 @@ void switch_to_thread(thread_t *thread) {
 	save_thread_state();
 
 	current_thread = thread;
-	current_thread_state = &thread->state->reg;
+	current_thread_state = thread->state;
 
 	load_thread_state();
 }
@@ -110,12 +82,12 @@ void print_thread_state(thread_t *thread) {
 
 	puthex_32(thread);
 	puts(": (thread->state = \n");
-	puthex_32(&thread->state->reg);
+	puthex_32(thread->state);
 	puts(")\n");
 
 	for(i = 0; i < 16; i++) {
 		putc('	');
-		puthex_32(thread->state->reg[i]);
+		puthex_32(*thread->state[i]);
 		puts("\n");
 	}
 }
@@ -137,4 +109,12 @@ void print_thread_table() {
 	puts("Current thread:");
 	puthex_32((uint32_t) current_thread);
 	puts("\n");
+}
+
+void armv7_test_context_switch() {
+	thread_t t;
+	create_thread_state(&t, 0, 0, 0);
+	save_thread_state();
+	//memcpy(t->state->reg, current_thread_state->reg, 
+	
 }
