@@ -1,8 +1,8 @@
 #include <stdint.h>
 #include "config.h"
-#include "drivers/serial/pl011.h"
+#include "platform.h"
 
-#if CONSOLE == PL011
+#include "serial/pl011.h"
 
 void pl011_putc(pl011_reg *dev, char c) {
 	//spin until the FIFO has room
@@ -18,4 +18,6 @@ char pl011_getc(pl011_reg *dev) {
 	return dev->data;
 }
 
-#endif
+void putc(char c) {
+	pl011_putc(BOOT_CON, c);
+}

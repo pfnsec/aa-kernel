@@ -2,7 +2,7 @@
 #define THREAD_H
 #include "config.h"
 #include <stdint.h>
-#include "arch/thread_state.h"
+#include "thread_state.h"
 #include "kernel/console.h"
 
 
@@ -17,7 +17,7 @@ typedef struct thread_t {
 	int ret_code; //return code of thread_func()
 } thread_t;
 
-thread_t *current_thread;
+extern thread_t *current_thread;
 
 void init_thread_table();
 

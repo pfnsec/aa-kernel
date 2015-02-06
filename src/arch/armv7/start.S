@@ -17,16 +17,24 @@ _stack_bot:
 
 _stack:
 .global _stack
-.skip 0x10000 // Reserve 4k stack in the BSS
+.skip 0x1000 // Reserve 4k stack in the BSS
 
 _start:
 	.global _start
-	ldr sp, =_stack+0x10000 // Set up the stack
+	ldr sp, =_stack+0x1000 // Set up the stack
 	bl init // Jump to the main function
 1: 
 	b 1b // Halt
 
 _swi_dispatch:
-	bx lr
+//	bl swi_handler
+//	pop {lr}
+//	bx lr
+
+
+.global interrupt_call
+interrupt_call:
+        push {lr}
+        swi 0
 
 #endif

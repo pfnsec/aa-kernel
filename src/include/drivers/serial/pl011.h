@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include "config.h"
 
+#if ARCH == armv7
+
 #define TX_FIFO_FULL  (1 << 5)
 #define RX_FIFO_EMPTY (1 << 4)
 
@@ -32,5 +34,6 @@ void pl011_putc(pl011_reg *, char c);
 
 	#define UART0 (pl011_reg *)(0x1C090000)
 
+#endif
 #endif
 #endif

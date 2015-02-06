@@ -1,9 +1,6 @@
 #include "config.h"
 
-#if ARCH == i386
-
 .code32
-.text
 
 .set ALIGN,    1<<0
 .set MEMINFO,  1<<1
@@ -17,7 +14,7 @@
 .long FLAGS
 .long CHECKSUM
 
-.text
+.section .init_stack
 .global _stack_bot
 _stack_bot:
 
@@ -26,12 +23,13 @@ _stack_bot:
 .global _stack
 _stack:
 
-
+.text
 .global _start
 _start:
-	movl _stack, %esp
+	movl $_stack, %esp
+	movl %esp, %ebp
 	call init
 	cli
 	hlt
-
-#endif
+_hang:
+	jmp _hang

@@ -1,6 +1,5 @@
 #include "config.h"
 
-#if ARCH == armv7
 //thread_state_t * of the currently running thread
 .global current_thread_state
 
@@ -83,6 +82,9 @@ save_thread_state:
 
 	str sp, [r0,#52]	
 
+	//store lr 
+//	ldr r1,[sp,#4]
+//	str r1, [r0,#56]	
 	str lr, [r0,#56]	
 
 	mrs r1, cpsr
@@ -93,13 +95,36 @@ save_thread_state:
 	mov r0, r1
 	bx lr
 
-#endif
-/*
-.global load_thread_state
-load_thread_state:
+.global get_cpsr
+get_cpsr:
+	mrs r0, cpsr
 	bx lr
 
-.global save_thread_state
-save_thread_state:
-	bx lr
-*/
+.data
+
+.global sp_str_addr
+sp_str_addr: .word 0
+
+.global sp_ld_addr
+sp_ld_addr: .word 0
+
+.text
+
+.global context_switch
+context_switch:
+        push {r0-r12}
+        push {r14-r15}
+        mrs r0, cpsr
+        push {r0}
+
+        ldr r0, =sp_str_addr
+        str sp, [r0]
+
+        ldr r0, =sp_ld_addr
+        ldr sp, [r0]
+
+        pop {r0}
+        msr cpsr, r0
+        pop {r14-r15}
+        pop {r0-r12}
+
