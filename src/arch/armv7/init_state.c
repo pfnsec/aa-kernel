@@ -21,7 +21,7 @@ void create_thread_state(thread_t *thread, int (*thread_func(void *)), void *thr
 
 
 	for (i = 0; i < 16; i++) {
-		*thread->state[i] = current_thread_state[i];
+		thread->state->reg[i] = current_thread_state->reg[i];
 	}	
 
 
@@ -42,10 +42,10 @@ void create_thread_state(thread_t *thread, int (*thread_func(void *)), void *thr
 
 //	stack[-1] = thread_exit;
 
-	*thread->state[0]  = (uint32_t) thread_param;
-	*thread->state[13] = (uint32_t) stack;
+	thread->state->reg[0]  = (uint32_t) thread_param;
+	thread->state->reg[13] = (uint32_t) stack;
 //	thread->state->reg[13] = (uint32_t) thread_exit;
-	*thread->state[14] = (uint32_t) thread_func;
-	*thread->state[15] = get_cpsr();
+	thread->state->reg[14] = (uint32_t) thread_func;
+	thread->state->reg[15] = get_cpsr();
 
 }

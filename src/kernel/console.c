@@ -1,19 +1,7 @@
 #include <stdint.h>
 #include "config.h"
-#include "platform.h"
 #include "kernel/console.h"
-#include "drivers/serial/pl011.h"
 
-#if CONSOLE == PL011
-#ifndef BOOT_CON
-#define BOOT_CON UART0
-#endif
-
-void putc(char c) {
-	pl011_putc(BOOT_CON, c);
-}
-
-#endif
 
 void puts(char *s) {
 	int i;
