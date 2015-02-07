@@ -5,6 +5,7 @@
 #include "kernel/malloc.h"
 #include "kernel/thread.h"
 
+thread_state_t *saved_thread_state;
 
 void thread_exit() {
 	puts("Exiting...\n");
@@ -16,12 +17,14 @@ void thread_exit() {
 void create_thread_state(thread_t *thread, int (*thread_func(void *)), void *thread_param, uint32_t stack_size) {
 	int i;
 	uint32_t *stack;
+	thread_state_t current_state;
 
+	saved_thread_state = current_state.reg;
 	save_thread_state();
 
 
 	for (i = 0; i < 16; i++) {
-		thread->state->reg[i] = current_thread_state->reg[i];
+		thread->state->reg[i] = saved_thread_state->reg[i];
 	}	
 
 

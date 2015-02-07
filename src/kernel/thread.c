@@ -7,8 +7,10 @@ thread_t init_thread;
 
 #define NULL 0
 
-//this will obviously need to be per-cpu if we ever support SMP 
+//these will obviously need to be per-cpu if we ever support SMP 
 thread_t *current_thread;
+thread_state_t *current_thread_state_old;
+thread_state_t *current_thread_state_new;
 
 void init_thread_table() {
 	current_thread = &init_thread;
@@ -18,7 +20,7 @@ void init_thread_table() {
 	current_thread->state = malloc(sizeof(thread_state_t));
 
 //	current_thread_state = current_thread->state->reg; //god dammit
-	current_thread_state = current_thread->state; //god dammit
+	current_thread_state_new = current_thread->state; //god dammit
 //	save_thread_state();
 }
 
@@ -58,12 +60,11 @@ void switch_to_thread(thread_t *thread) {
 	puthex_32(thread);
 	puts(")\n");
 */
-	save_thread_state();
-
 	current_thread = thread;
-	current_thread_state = thread->state;
+	current_thread_state_old = current_thread_state_new;
+	current_thread_state_new = thread->state;
 
-	load_thread_state();
+	do_context_switch();
 }
 
 
@@ -87,7 +88,7 @@ void print_thread_state(thread_t *thread) {
 
 	for(i = 0; i < 16; i++) {
 		putc('	');
-		puthex_32(*thread->state[i]);
+		puthex_32(thread->state->reg[i]);
 		puts("\n");
 	}
 }

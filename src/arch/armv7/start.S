@@ -27,9 +27,9 @@ _start:
 	b 1b // Halt
 
 _swi_dispatch:
-//	bl swi_handler
-//	pop {lr}
-//	bx lr
+	bl swi_handler
+	pop {lr}
+	bx lr
 
 
 .global interrupt_call

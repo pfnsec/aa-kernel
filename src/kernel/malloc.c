@@ -4,10 +4,9 @@
 
 extern uint32_t _seg_data;
 
-#define MEM_BEGIN &_seg_data
 
 #ifndef MEM_END //platform.h
-#define MEM_END (MEM_BEGIN + 0x08000000)
+#define MEM_END (MEM_BEGIN + 0x04000000)
 #endif
 
 
@@ -35,8 +34,10 @@ void init_alloc_table() {
 uint32_t split(alloc_t *entry, uint32_t bytes) {
 	alloc_t *new_entry;
 
-	if(entry->size <= bytes + sizeof(alloc_t))
+	if(entry->size <= bytes + sizeof(alloc_t)) {
+		puts("split() failed!\n");
 		return 0;
+	}
 
 	new_entry = (alloc_t *)(entry->address + bytes);
 	new_entry->free = 1;
@@ -79,8 +80,10 @@ void *malloc(uint32_t size) {
 		if(split(cur, size) == 0) {
 			continue;
 		}
-		cur->free = 0;
-		return cur->address;
+		if(cur->address != 0) {
+			cur->free = 0;
+			return cur->address;
+		}
 	}
 	puts("Alloc of size 0x");
 	puthex_32(size);
@@ -146,4 +149,12 @@ char *memcpy(char *s1, char *s2, uint32_t n) {
 	}
 
 	return s1;
+}
+
+void memset(char *s1, int t, uint32_t n) {
+	uint32_t offset;
+
+	for(offset = 0; offset < n; offset++) {
+		s1[offset] = t;
+	}
 }

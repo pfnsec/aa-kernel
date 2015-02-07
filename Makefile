@@ -7,7 +7,7 @@ export CC=$(PREFIX)gcc
 export LD=$(PREFIX)ld
 export AS=$(PREFIX)gcc
 
-export CFLAGS=-Wall -nostdlib -ffreestanding -Isrc/include \
+export CFLAGS=-Wall -g -nostdlib -ffreestanding -Isrc/include \
 	-mcpu='cortex-a8' -mfpu='neon' -fdiagnostics-color=always #-funsafe-math-optimizations	
 
 export LDFLAGS=-Tlink/link-armv7.ld -nostdlib

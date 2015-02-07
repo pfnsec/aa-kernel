@@ -5,7 +5,8 @@
 #include "kernel/sched.h"
 
 sched_table *pri_table;
-uint32_t *current_thread_state __attribute__((aligned (4)));
+//uint32_t *current_thread_state __attribute__((aligned (4)));
+thread_state_t *current_thread_state;
 thread_t *scheduler_thread;
 
 int do_sched(void *);
@@ -50,19 +51,6 @@ thread_t *next_thread(sched_table *sched) {
 	return sched->current->thread;
 }
 
-void print_sched_table(sched_table *tbl) {
-	sched_entry *cur;
-	
-	puts("Sched Table: ");
-	puthex_32(tbl);
-	puts("\n");
-
-	for(cur = tbl->top; cur != 0; cur = cur->next) {
-		puthex_32(cur->thread);
-		putc('\n');
-	}
-}
-
 //the 'meat' of the scheduler - this is the function passed to create scheduler_thread
 int do_sched(void *table) {
 	while(1) {
@@ -76,8 +64,6 @@ int do_sched(void *table) {
 }
 
 void yield() {
-	puthex_32(pri_table);
-	puts("\n");
 //	puts(".yield()\n");
 
 //	print_thread_state(current_thread);
@@ -86,3 +72,23 @@ void yield() {
 
 	switch_to_thread(next_thread(pri_table));
 }
+
+void print_sched_table(sched_table *tbl) {
+	sched_entry *cur;
+	
+	puts("Sched Table: ");
+	puthex_32(tbl);
+	puts("\n");
+
+	for(cur = tbl->top; cur != 0; cur = cur->next) {
+		puthex_32(cur->thread);
+		putc('\n');
+	}
+}
+
+
+void print_pri_table() {
+	print_sched_table(pri_table);
+}
+
+
