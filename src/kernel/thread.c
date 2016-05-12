@@ -1,121 +1,211 @@
-#include "config.h"
-#include "kernel/console.h"
-#include "kernel/malloc.h"
+#include "thread_state.h"
+#include "registers.h"
 #include "kernel/thread.h"
+#include "kernel/malloc.h"
 
 thread_t init_thread;
 
-#define NULL 0
-
-//these will obviously need to be per-cpu if we ever support SMP 
 thread_t *current_thread;
-thread_state_t *current_thread_state_old;
-thread_state_t *current_thread_state_new;
 
-void init_thread_table() {
-	current_thread = &init_thread;
-	current_thread->parent = 0;
-	current_thread->child = 0;
-	current_thread->next = 0;
-	current_thread->state = malloc(sizeof(thread_state_t));
 
-//	current_thread_state = current_thread->state->reg; //god dammit
-	current_thread_state_new = current_thread->state; //god dammit
-//	save_thread_state();
+volatile addr_t load_save_stack;
+
+
+void thread_init() {
+	current_thread       = &init_thread;
+	load_save_stack      = init_thread.stack;
+	init_thread.status   = THREAD_SCHEDULED;
+	init_thread.user     = 0;
+	init_thread.parent   = 0;
+	init_thread.children = 0;
+	init_thread.next     = 0;
 }
 
-thread_t *create_thread(thread_t *parent) {
-	thread_t *thread;
-	thread_t *prev; //last entry in parent->child (parent->child->next == 0)
 
-	thread = malloc(sizeof(thread_t));
+void thread_exit(int ret) {
+	current_thread->status      = THREAD_ZOMBIE;
+	current_thread->ret = ret;
+	while(1);
+}
 
-	thread->state = malloc(sizeof(thread_state_t));
 
-	thread->parent = parent;
-	thread->child = NULL;
 
-	prev = parent->child;
-	if(prev == NULL) {
-		parent->child = thread;
+thread_t *thread_create(int (*func)(void)) {
+	thread_t *new_thread = malloc(sizeof (thread_t));
+
+	if(new_thread == 0) {
+		return 0;
+	}
+
+	new_thread->parent   = current_thread;
+	new_thread->next     = 0;
+	new_thread->children = 0;
+
+
+	new_thread->stack    = (addr_t) (malloc(DEFAULT_STACK_SIZE));
+
+	if(new_thread->stack == 0) {
+		return 0;
+	}
+
+	new_thread->stack += (DEFAULT_STACK_SIZE - THREAD_STATE_SIZE);
+
+	new_thread->user = 0;
+
+	new_thread->status = THREAD_SCHEDULED;
+
+
+	*(addr_t *) (new_thread->stack + THREAD_ELR_OFFSET) = (addr_t) func;
+	*(addr_t *) (new_thread->stack + THREAD_PSR_OFFSET) = THREAD_SYS_PSR;
+
+	*(addr_t *) (new_thread->stack + THREAD_LR_OFFSET)  = (addr_t) &thread_exit;
+
+
+	if(current_thread->children == 0) {
+		current_thread->children = new_thread;
+		return new_thread;
 	} else {
-		while(prev->next != NULL) {
-			prev = prev->next;
+		for(thread_t *i = current_thread->children; ; i = i->next) {
+			if(i->next == 0) {
+				i->next = new_thread;
+				return new_thread;
+			}
 		}
-		prev->next = thread;
 	}
-	return thread;
+
+	return 0;
 }
 
+//Swap the stack pointers to switch into the next thread when state is reloaded.
+//Updates user/kernel flags in the current thread_t appropriately;
+//returns the mode of the thread_t we're switching to.
+int thread_stack_switch(int current_mode) {
+	thread_t *it;
+	current_thread->stack = load_save_stack;
 
+	//current_thread->user = current_mode;
 
+//	put_addr(current_thread->stack);
 
-void switch_to_thread(thread_t *thread) {
-	if(thread == 0 || thread->state == 0) {
-		puts("Error: switch_to_thread was called with NULL\n");
-		return;
+	//Round-robin cycle over the thread table, 
+	//After this search, *current_thread points to the *next* thread to execute
+	it = current_thread->children;
+	while(it != 0) {
+		if(it->status == THREAD_SCHEDULED) {
+			current_thread = it;
+			break;
+		} else {
+			it = it->next;
+		}
 	}
+
+	if(it == 0) {
+		it = current_thread->next;
+		while(it != 0) {
+			if(it->status == THREAD_SCHEDULED) {
+				current_thread = it;
+				break;
+			} else {
+				it = it->next;
+			}
+		}
+	}
+
+	if(it == 0) {
+		it = current_thread->parent;
+		while(it != 0) {
+			if(it->status == THREAD_SCHEDULED) {
+				current_thread = it;
+				break;
+			} else {
+				it = it->next;
+			}
+		}
+	}
+
+
+	if(it == 0) {
+		current_thread = &init_thread;
+	}
+
+//	put_addr(current_thread->stack);
+//	puts("\n");
 /*
-	puts("switch_to_thread(");
-	puthex_32(thread);
-	puts(")\n");
-*/
-	current_thread = thread;
-	current_thread_state_old = current_thread_state_new;
-	current_thread_state_new = thread->state;
+	puts(" -> ");
 
-	do_context_switch();
-}
+	put_addr(current_thread->stack);
 
+	puts("\n");
 
-void print_field(char *prefix, uint32_t field, int nspaces) {
-	int i;
-	for(i = 0; i < nspaces; i++)
-		puts("  ");
+	puts("stack[0..5]:\n");
 
-	puts(prefix);
-	puthex_32(field);
-	putc('\n');
-}
-
-void print_thread_state(thread_t *thread) {
-	int i;
-
-	puthex_32(thread);
-	puts(": (thread->state = \n");
-	puthex_32(thread->state);
-	puts(")\n");
-
-	for(i = 0; i < 16; i++) {
-		putc('	');
-		puthex_32(thread->state->reg[i]);
+	for(int i = 0; i < 5; i++) {
+		puts("	");
+		put_addr(*(addr_t *)(current_thread->stack + i * 4));
 		puts("\n");
 	}
+*/
+
+	load_save_stack = current_thread->stack;
+
+	return current_thread->user;
 }
 
-void print_table_rec(thread_t *cur, int nspaces) {
-	thread_t *child;
-	print_field("Thread: ", (uint32_t)cur, nspaces);
-	print_field("Parent: ", (uint32_t)cur->parent, nspaces);
 
-	child = cur->child;
-	while(child != NULL) {
-		print_table_rec(child, nspaces + 1);
-		child = child->next;
+int thread_wait(thread_t *thread) {
+	if(thread == 0)
+		return 0;
+
+	while(thread->status != THREAD_ZOMBIE); 
+
+	return thread->ret;
+}
+
+
+void thread_join() {
+	thread_t *thread = current_thread->children;
+
+	if(thread == 0)
+		return;
+
+	while(1) {
+		thread = current_thread->children;
+
+		while(thread->next != 0) {
+			thread = thread->next;
+
+			if(thread->status != THREAD_ZOMBIE) {
+				break;
+			}
+		}
 	}
+
 }
+
 
 void print_thread_table() {
-	print_table_rec(&init_thread, 0);
-	puts("Current thread:");
-	puthex_32((uint32_t) current_thread);
-	puts("\n");
-}
+	for(thread_t *i = &init_thread; ; i = i->next) {
+		put_addr(i);
+		puts(" : ");
+		put_addr((void *)i->stack);
+		puts("\n");
 
-void armv7_test_context_switch() {
-	thread_t t;
-	create_thread_state(&t, 0, 0, 0);
-	save_thread_state();
-	//memcpy(t->state->reg, current_thread_state->reg, 
+		if(i->children != 0) {
+			for(thread_t *j = i->children; ; j = j->next) {
+				puts("	");
+				put_addr(j);
+				puts(" : ");
+				put_addr((void *)j->stack);
+				puts("\n");
+
+				if(j->next == 0)
+					break;
+			}
+		}
+
+		if(i->next == 0) 
+			return;
+	}
+
 	
 }

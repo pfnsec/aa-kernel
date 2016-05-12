@@ -1,0 +1,14 @@
+#ifndef THREAD_STATE_H
+#define THREAD_STATE_H
+
+
+#define THREAD_STATE_SIZE 34*8
+
+#define THREAD_ELR_OFFSET  0*8
+#define THREAD_PSR_OFFSET  1*8
+#define THREAD_LR_OFFSET   2*8
+
+#define THREAD_SYS_PSR   0x3C5
+
+
+#endif

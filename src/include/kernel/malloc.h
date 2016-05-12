@@ -2,7 +2,7 @@
 #define MALLOC_H
 #include <stdint.h>
 
-void init_alloc_table();
+void alloc_init();
 
 void *malloc(uint32_t);
 

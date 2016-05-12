@@ -1,13 +1,16 @@
-#include "config.h"
 #include "drivers/serial/pl011.h"
 #include "kernel/main.h"
 #include "kernel/malloc.h"
 #include "kernel/thread.h"
-#include "kernel/sched.h"
+#include "arch.h"
+#include "platform.h"
 
 void init() {
-	init_alloc_table();
-	init_thread_table();
-	init_sched();
+	arch_init();
+	alloc_init();
+	thread_init();
+	irq_init();
+
+	platform_init();
 	kmain();
 }

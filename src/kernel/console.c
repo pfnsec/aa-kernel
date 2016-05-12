@@ -1,5 +1,4 @@
 #include <stdint.h>
-#include "config.h"
 #include "kernel/console.h"
 
 
@@ -31,4 +30,17 @@ void puthex_16(uint16_t hex) {
 void puthex_32(uint32_t hex) {
 	puthex_16(hex >> 16);
 	puthex_16(hex);
+}
+
+void puthex_64(uint64_t hex) {
+	puthex_32(hex >> 32);
+	puthex_32(hex);
+}
+
+void put_addr(void *addr) {
+	#if   defined __aarch64__
+		puthex_64((uint64_t) addr);
+	#elif defined __arm__
+		puthex_32((uint32_t) addr);
+	#endif
 }

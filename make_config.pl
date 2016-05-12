@@ -1,1 +1,0 @@
-scripts/make_config.pl

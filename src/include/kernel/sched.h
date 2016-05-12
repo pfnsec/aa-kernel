@@ -1,6 +1,5 @@
 #ifndef SCHED_H
 #define SCHED_H
-#include "config.h"
 #include "kernel/thread.h"
 
 typedef struct sched_entry {

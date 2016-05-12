@@ -1,39 +1,48 @@
 #ifndef PL011_H
 #define PL011_H
 #include <stdint.h>
-#include "config.h"
+#include "platform.h"
 
-#if ARCH == armv7
-
+//pl011->flags bitfields
 #define TX_FIFO_FULL  (1 << 5)
 #define RX_FIFO_EMPTY (1 << 4)
 
-typedef struct pl011_reg {
+
+//pl011->control bitfields
+#define PL011_CTS_EN  (1 << 15)
+#define PL011_RTS_EN  (1 << 14)
+#define PL011_ENABLE  (1 << 0)
+
+
+//pl011->line_control bitfields
+#define PL011_FIFO_EN (1 << 4)
+
+
+#define PL011_IRQ_RX  (1 << 4)
+
+
+typedef volatile struct pl011 {
 	uint32_t data;
 	uint32_t error_status;
-	char pad1[16];
+	uint32_t pad1[4];
 	uint32_t flags;
-	char pad2[16];
+	uint32_t pad2[4];
+	uint32_t line_control;
 	uint32_t control;
-}__attribute__ ((aligned (4), packed)) pl011_reg; 
+	uint32_t irq_level;
+	uint32_t irq_mask;
+	uint32_t irq_raw_status;
+	uint32_t irq_mask_status;
+	uint32_t irq_clear;
+}__attribute__ ((packed)) pl011; 
 
 
-void pl011_putc(pl011_reg *, char c);
+void pl011_init(pl011 *);
 
+void pl011_putc(pl011 *, char c);
 
-#if PLATFORM == integratorcp
+char pl011_getc(pl011 *);
 
-	#define UART0 (pl011_reg *)(0x16000000)
-	#define UART1 (pl011_reg *)(0x17000000)
+void pl011_irq_handler();
 
-#elif platform == virt
-
-	#define UART0 (pl011_reg *)(0x09000000)
-
-#elif platform == foundation
-
-	#define UART0 (pl011_reg *)(0x1C090000)
-
-#endif
-#endif
 #endif

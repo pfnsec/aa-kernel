@@ -1,20 +1,18 @@
 #ifndef THREAD_STATE_H
 #define THREAD_STATE_H
 
-typedef struct thread_state_t {
-	uint32_t reg[16];
-} __attribute__((packed)) thread_state_t;
 
-//typedef uint32_t thread_state_t[16];
+#define THREAD_STATE_SIZE 16*4
 
-int save_thread_state();
-int load_thread_state();
+#define THREAD_ELR_OFFSET  0*4
+#define THREAD_PSR_OFFSET  1*4
+#define THREAD_LR_OFFSET   2*4
 
-extern thread_state_t *current_thread_state;
 
-extern uint32_t get_cpsr();
+//CPSR: Supervisor mode, with IRQ, FIQ, and Imprecise Abort disabled
+#define THREAD_SYS_PSR    (0x13) | (0b111 << 6)
 
-extern uint32_t *sp_ld_addr, *sp_str_addr;
+
 
 
 #endif

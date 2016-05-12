@@ -1,19 +1,12 @@
 #include "kernel/console.h"
+#include "registers.h"
 #include "platform.h"
 #include <stdint.h>
-
-extern uint32_t _seg_data;
-
-
-#ifndef MEM_END //platform.h
-#define MEM_END (MEM_BEGIN + 0x04000000)
-#endif
-
 
 typedef struct alloc_t {
 	int free;
 	void *address;
-	uint32_t size;
+	addr_t size;
 	struct alloc_t *next;
 } alloc_t;
 
@@ -21,28 +14,26 @@ typedef struct alloc_t {
 alloc_t alloc_head;
 
 
-void init_alloc_table() {
+void alloc_init() {
 	alloc_head.free = 1;
-	alloc_head.address = (void *)MEM_BEGIN + sizeof(alloc_t);
+	alloc_head.address = (void *)(MEM_BEGIN + sizeof(alloc_t));
 	alloc_head.size = (MEM_END - MEM_BEGIN);
 	alloc_head.next = 0;
 }
 
 
-//split an allocation block into two, one of size bytes and return the size of the other
-//returns 0 on failure
+//Split an allocation entry into two blocks, one of a specified size
 uint32_t split(alloc_t *entry, uint32_t bytes) {
 	alloc_t *new_entry;
 
 	if(entry->size <= bytes + sizeof(alloc_t)) {
-		puts("split() failed!\n");
 		return 0;
 	}
 
-	new_entry = (alloc_t *)(entry->address + bytes);
-	new_entry->free = 1;
-	new_entry->address = (void *)new_entry + sizeof(alloc_t);
-	new_entry->size = entry->size - (bytes + sizeof(alloc_t));
+	new_entry          = (alloc_t *)(entry->address + bytes);
+	new_entry->free    = 1;
+	new_entry->address = (void *)(new_entry + sizeof(alloc_t));
+	new_entry->size    = entry->size - (bytes + sizeof(alloc_t));
 
 	//insert into allocation table
 	new_entry->next = entry->next;
@@ -58,11 +49,11 @@ void print_alloc_table() {
 	alloc_t *cur;
 
 	for(cur = &alloc_head; cur != 0; cur = cur->next) {
-		puthex_32((uint32_t) cur);
+		put_addr(cur);
 		puts(":\n");
-		puthex_32((uint32_t) cur->address);
+		put_addr(cur->address);
 		puts(" : ");
-		puthex_32((uint32_t) cur->size);
+		puthex_32(cur->size);
 		if(cur->free) puts(" (free)\n");
 		putc('\n');
 	}
@@ -72,14 +63,17 @@ void print_alloc_table() {
 void *malloc(uint32_t size) {
 	alloc_t *cur;
 
+	//Search for a large enough block
 	for(cur = &alloc_head; cur != 0; cur = cur->next) {
-		//iterate until we find a free block large enough
-		if(cur->free != 1 || cur->size < (size + sizeof(alloc_t)))
+
+		if(cur->free != 1 || cur->size < (size + sizeof(alloc_t))) {
 			continue;
+		}
 
 		if(split(cur, size) == 0) {
 			continue;
 		}
+
 		if(cur->address != 0) {
 			cur->free = 0;
 			return cur->address;
@@ -92,7 +86,7 @@ void *malloc(uint32_t size) {
 }
 
 
-void alloc_test(size) {
+void alloc_test(int size) {
 	int i;
 	char *a, *b, *c, *d;
 
@@ -107,10 +101,20 @@ void alloc_test(size) {
 		c[i] = 'c';
 		d[i] = 'd';
 	}
+
 	a[size] = '\n';
 	b[size] = '\n';
 	c[size] = '\n';
 	d[size] = '\n';
+
+	for(i = 0; i < size; i++) {
+		if(!(a[i] == 'a' &&
+	 	     b[i] == 'b' &&
+		     c[i] == 'c' &&
+		     d[i] == 'd')) {
+			puts("Error: alloc_test(): Memory regions not separate!\n");
+		}
+	}
 
 
 	print_alloc_table();
@@ -127,16 +131,17 @@ void free(void *addr) {
 }
 
 
-//combines blocks into contiguous areas where possible
+//Combine adjacent free blocks 
 void reclaim_fragments() {
 	alloc_t *blk1, *blk2;
 
 	for(blk1 = &alloc_head; blk1 != 0; blk1 = blk1->next) {
 		blk2 = blk1->next;
+
 		if(blk1->free && blk2->free) {
 			blk1->next = blk2->next;
 			blk1->size += (blk2->size + sizeof(alloc_t));
-		} else continue;
+		}
 	}
 }
 
