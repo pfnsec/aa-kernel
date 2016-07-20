@@ -1,10 +1,15 @@
 #include <stdint.h>
+#include <stdarg.h>
 #include "kernel/console.h"
 
 
 void puts(char *s) {
-	int i;
-	for(i = 0; s[i] != 0; i++) {
+	if(s == 0) {
+		puts("\\0");
+		return;
+	};
+
+	for(int i = 0; s[i] != 0; i++) {
 		putc(s[i]);
 	}
 }
@@ -43,4 +48,44 @@ void put_addr(void *addr) {
 	#elif defined __arm__
 		puthex_32((uint32_t) addr);
 	#endif
+}
+
+void printf(char *s, ...) {
+	va_list args;
+	va_start(args, s);
+
+	while(*s) {
+		switch(*s) {
+		case '%':
+			switch(*(++s)) {
+			case 's':
+				puts(va_arg(args, char *));
+				break;
+			case 'b':
+				puthex_8((uint8_t)va_arg(args,  int));
+				break;
+			case 'h':
+				puthex_16((uint16_t)va_arg(args, int));
+				break;
+			case 'w':
+				puthex_32((uint32_t)va_arg(args, int));
+				break;
+			case '%':
+				putc('%');
+				break;
+			default:
+				break;
+			}
+
+			break;
+
+		default:
+			putc(*s);
+
+		}
+
+		s++;
+	}
+
+	va_end(args);
 }
