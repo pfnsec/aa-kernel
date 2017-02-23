@@ -1,72 +1,136 @@
-#include "kernel/console.h"
 #include "registers.h"
 #include "platform.h"
+#include "kernel/console.h"
+#include "kernel/bb_alloc.h"
+#include "kernel/malloc.h"
 #include <stdint.h>
 
-typedef struct alloc_t {
-	int free;
-	void *address;
-	addr_t size;
-	struct alloc_t *next;
-} alloc_t;
+
+alloc_t *alloc_head;
+slab     alloc_cache;
+
+void print_alloc_table();
+
+//Allocate 2^depth pages when we exhaust the current page pool
+int alloc_page_depth = 1;
 
 
-alloc_t alloc_head;
+void extend_page_pool(page_pool *p) {
+	alloc_t *a = p->head;
+
+	do {
+		if(a->next == 0) {
+			a->next = slab_alloc(&alloc_cache);
+
+			if(a->next == 0) {
+				printf("extend_page_pool(%w) failed to extend allocation table!\n", p);
+				return;
+			}
+
+			a->next->start = page_alloc((1 << p->alloc_depth));
+
+			if(a->start == 0) {
+				printf("extend_page_pool(%w): failed to allocate page(s)!\n", p);
+
+				printf("\textendable = %b\n", p->extendable);
+
+				printf("\tdepth_extendable = %b\n", p->depth_extendable); 
+
+				printf("\tpage_count = %w\n", p->page_count); 
+
+				printf("\talloc_depth = %b\n", p->alloc_depth); 
+
+				slab_free(&alloc_cache, a);
+				a->next = 0;
+
+			} else {
+				a->next->end     = a->start + (1 << p->alloc_depth) * PAGESIZE;
+				a->next->free    = 1;
+				a->next->next    = 0;
+			}
+		}
+
+		a = a->next;
+	} while(a != 0);
+
+}
 
 
 void alloc_init() {
-	alloc_head.free = 1;
-	alloc_head.address = (void *)(MEM_BEGIN + sizeof(alloc_t));
-	alloc_head.size = (MEM_END - MEM_BEGIN);
-	alloc_head.next = 0;
+
+	slab_create(&alloc_cache, sizeof(alloc_t), page_alloc(1));
+
+	alloc_head = slab_alloc(&alloc_cache);
+
+	if(!alloc_head)
+		printf("alloc_init(): couldn't create alloc_head!");
+
+	alloc_head->free = 1;
+	alloc_head->start = page_alloc((1 << alloc_page_depth));
+	alloc_head->end = alloc_head->start + ((1 << alloc_page_depth) * PAGESIZE);
+	alloc_head->next = 0;
+
+/*
+	printf("alloc_init():\n \
+	         alloc_head : %w \n \
+	         alloc_head->start : %w \n \
+	         alloc_head->end : %w \n \
+	         alloc_head->next : %w\n", 
+	       alloc_head, 
+	       alloc_head->start, 
+	       alloc_head->end, 
+               alloc_head->next);
+*/
 }
 
 
 //Split an allocation entry into two blocks, one of a specified size
-uint32_t split(alloc_t *entry, uint32_t bytes) {
+uint32_t split(alloc_t *entry, uint32_t size) {
 	alloc_t *new_entry;
 
-	if(entry->size <= bytes + sizeof(alloc_t)) {
+	if(entry->end - entry->start < size) {
+		return 0;
+	} else if(entry->end - entry->start == size) {
+		return size;
+	}
+
+	new_entry          = (alloc_t *)slab_alloc(&alloc_cache);
+
+	if(new_entry == 0) {
+		printf("split(%w, %w): failed to allocate entry\n", entry, size);
 		return 0;
 	}
 
-	new_entry          = (alloc_t *)(entry->address + bytes);
-	new_entry->free    = 1;
-	new_entry->address = (void *)(new_entry + sizeof(alloc_t));
-	new_entry->size    = entry->size - (bytes + sizeof(alloc_t));
+	new_entry->free  = 1;
+	new_entry->start = entry->start + size;
+	new_entry->end   = entry->end;
 
 	//insert into allocation table
 	new_entry->next = entry->next;
 	entry->next = new_entry;
 
-	//entry->size -= new_entry->size + sizeof(alloc_t);
-	entry->size = bytes;
-	return new_entry->size;
+	entry->end = entry->start + size;
+
+//	printf("split(0x%w, %w):\n entry->free : %w \n entry->start : %w \n entry->end : %w\n entry->next : %w \n", entry, size, entry->free, entry->start, entry->end, entry->next);
+//	printf("split(0x%w, %w):\n new_entry->free : %w \n new_entry->start : %w \n new_entry->end : %w\n new_entry->next : %w \n", new_entry, size, new_entry->free, new_entry->start, new_entry->end, new_entry->next);
+	return new_entry->end - new_entry->start;
 }
 
-
-void print_alloc_table() {
-	alloc_t *cur;
-
-	for(cur = &alloc_head; cur != 0; cur = cur->next) {
-		put_addr(cur);
-		puts(":\n");
-		put_addr(cur->address);
-		puts(" : ");
-		puthex_32(cur->size);
-		if(cur->free) puts(" (free)\n");
-		putc('\n');
-	}
-}
 
 
 void *malloc(uint32_t size) {
 	alloc_t *cur;
 
-	//Search for a large enough block
-	for(cur = &alloc_head; cur != 0; cur = cur->next) {
+	if(size > (1 << alloc_page_depth) * PAGESIZE) {
+		int i;
 
-		if(cur->free != 1 || cur->size < (size + sizeof(alloc_t))) {
+
+	}
+
+	//Search for a large enough block
+	for(cur = alloc_head; cur != 0; cur = cur->next) {
+
+		if(cur->free != 1 || (cur->end - cur->start) < size) {
 			continue;
 		}
 
@@ -74,14 +138,15 @@ void *malloc(uint32_t size) {
 			continue;
 		}
 
-		if(cur->address != 0) {
+		if(cur->start != 0) {
 			cur->free = 0;
-			return cur->address;
+//			printf("malloc():\n cur : %w \n cur->start : %w \n cur->end : %w \n cur->next : %w\n", cur, cur->start, cur->end, cur->next);
+			return cur->start;
 		}
 	}
-	puts("Alloc of size 0x");
-	puthex_32(size);
-	puts(" failed!\n");
+
+	printf("Alloc of size 0x%w failed!\n", size);
+
 	return 0;
 }
 
@@ -124,8 +189,8 @@ void alloc_test(int size) {
 void free(void *addr) {
 	alloc_t *cur;
 
-	for(cur = &alloc_head; cur != 0; cur = cur->next) {
-		if(cur->address == addr)
+	for(cur = alloc_head; cur != 0; cur = cur->next) {
+		if(cur->start == addr)
 			cur->free = 1;
 	}
 }
@@ -135,12 +200,13 @@ void free(void *addr) {
 void reclaim_fragments() {
 	alloc_t *blk1, *blk2;
 
-	for(blk1 = &alloc_head; blk1 != 0; blk1 = blk1->next) {
+	for(blk1 = alloc_head; blk1 != 0; blk1 = blk1->next) {
 		blk2 = blk1->next;
 
 		if(blk1->free && blk2->free) {
 			blk1->next = blk2->next;
-			blk1->size += (blk2->size + sizeof(alloc_t));
+			blk1->end  = blk2->end;
+			slab_free(&alloc_cache, blk2);
 		}
 	}
 }
@@ -163,3 +229,17 @@ void memset(char *s1, int t, uint32_t n) {
 		s1[offset] = t;
 	}
 }
+
+void print_alloc_table() {
+	alloc_t *cur;
+
+	for(cur = alloc_head; cur != 0; cur = cur->next) {
+		printf("%w:\n", cur);
+		printf("%w : %w", cur->start, cur->end - cur->start);
+		if(cur->free) 
+			puts(" (free)\n");
+		else
+			putc('\n');
+	}
+}
+

@@ -22,11 +22,11 @@ extern volatile addr_t load_save_stack;
 
 
 typedef struct thread_t {
-	int    user;
-	volatile int status;
-	int    id;
-	volatile int    ret;
-	volatile addr_t stack;
+	int              user;
+	volatile int     status;
+	int              id;
+	volatile int     ret;
+	volatile void   *stack;
 	struct thread_t *parent;
 	struct thread_t *children;
 	struct thread_t *next;

@@ -1,24 +1,25 @@
-.section .ivt
+//.section .ivt
+.section .text
 .global interrupt_vector_table
 interrupt_vector_table:
 	b .             	// Reset
 	b .             	// Undefined Instruction
 	ldr pc, _swi_dispatch   // SWI instruction
-	b .             	// Prefetch abort
-	b .             	// Data abort
-	b .             	// Data abort
+	ldr pc, _abt_dispatch  	// Prefetch abort
+	ldr pc, _abt_dispatch  	// Data abort
+	ldr pc, _abt_dispatch  	// Data abort
 	ldr pc, _irq_dispatch   // IRQ
 	b .             	// FIQ
 
 _swi_dispatch: .word swi_dispatch
 _irq_dispatch: .word irq_dispatch
+_abt_dispatch: .word abt_dispatch
 
 
-.section .text
 
 /*
- * saved_lr and saved_spsr are variables that store lr and spsr across processor modes,
- * allowing for inter-mode state save/load.
+ * saved_elr and saved_spsr are variables that store lr and spsr across processor modes,
+ * allowing inter-mode state save/load.
  */
 
 
@@ -57,6 +58,17 @@ irq_return:
 	movs pc, lr
 
 
+abt_dispatch:
+	cpsid i
+	mov r0, lr
+	sub r0, r0, #8
+	bl abort_panic
+	
+_abt_hang:
+	wfe
+	b _abt_hang
+
+
 
 .global task_switch
 task_switch:
@@ -74,7 +86,7 @@ kernel_state_save:
 
 	stmdb sp!,{r0-r1}
 
-	ldr r0, =load_save_stack
+	ldr r0, =active_switch_stack
 	mov r1, sp
 	str r1, [r0] 
 
@@ -91,7 +103,7 @@ state_load:
 
 kernel_state_load:
 	cpsid ai, #19
-	ldr r0, =load_save_stack
+	ldr r0, =active_switch_stack
 	ldr r1, [r0] 
 	mov sp, r1
 
@@ -149,21 +161,28 @@ yield:
 .global irq_disable
 
 irq_enable:
+	cpsie i
+	bx lr
+/*
 	push {r0}
 	mrs r0, cpsr
 	bic r0, r0, #(1 << 7)
 	msr cpsr, r0
 	pop {r0}
 	bx lr
+*/
 
 irq_disable:
+	cpsid i
+	bx lr
+/*
 	push {r0}
 	mrs r0, cpsr
 	orr r0, r0, #(1 << 7)
 	msr cpsr, r0
 	pop {r0}
 	bx lr
-
+*/
 .global irq_wait
 irq_wait:
 	wfi

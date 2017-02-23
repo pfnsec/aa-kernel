@@ -12,7 +12,7 @@ try_lock:
 	cmp r1, r2
 	beq test_lock
 
-//	dmb
+	dmb
 	bx lr
 
 .global mutex_try_lock
@@ -21,12 +21,23 @@ mutex_try_lock:
 	ldrex r1, [r0]
 	cmp r1, r2
 	bne try_test_lock
+	clrex
+	mov r0, #0
 	bx lr
 
 try_test_lock:
 	strex r1, r2, [r0]
-	mov r0, r2
-//	dmb
+	cmp r1, #0
+	bne lock_fail
+
+lock_succ:
+	mov r0, #1
+	dmb	
+	bx lr
+	
+lock_fail:
+	mov r0, #0
+	dmb
 	bx lr
 	
 
@@ -34,6 +45,10 @@ try_test_lock:
 .global mutex_unlock
 mutex_unlock:
 	mov r2, #0
-//	dmb
 	str r2, [r0]
+	bx lr
+
+.global __dmb
+__dmb:
+	dmb
 	bx lr

@@ -3,7 +3,6 @@
 #include "registers.h"
 
 //Linked list, with each node containing info on a block of 2^size pages
-
 typedef struct bb_alloc_t {
 	unsigned int size;
 	void *addr;
@@ -36,10 +35,10 @@ typedef struct slab {
 //before having initialized the page allocator.
 //
 //Pages must in this case be statically allocated also; the first page available
-//is so reserved for the static heads of dynamic data structures used by the slab cache and 
-//buddy-block allocator implementations.
+//on the system is so reserved for data structures used by the slab cache and 
+//buddy-block allocators.
 //
-//Each 'block' in a slab has a word-sized bitmap indicating whether a given entry in the block is free.
+//Each 'block' in a slab has a word-sized ([32|64] bit) bitmap indicating whether a given entry in the block is free.
 //Each slab therefore has (PAGESIZE/BLOCKSIZE) blocks per page.
 
 
@@ -81,6 +80,9 @@ typedef struct slab {
 	}
 
 
+void  bb_alloc_init();
+
+void *page_alloc(int);
 
 void  slab_create(slab *, addr_t, void *);
 

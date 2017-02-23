@@ -12,4 +12,7 @@ void mutex_lock(mutex *);
 void mutex_unlock(mutex *);
 
 
+void __dmb();
+
+
 #endif

@@ -10,7 +10,8 @@
 
 
 //CPSR: Supervisor mode, with IRQ, FIQ, and Imprecise Abort disabled
-#define THREAD_SYS_PSR    (0x13) | (0b111 << 6)
+//#define THREAD_SYS_PSR    (0x13) | (0b111 << 6)
+#define THREAD_SYS_PSR    (0x13)
 
 
 

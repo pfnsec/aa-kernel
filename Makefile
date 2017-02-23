@@ -1,5 +1,5 @@
 TARGET   := armv7
-PLATFORM := integratorcp
+PLATFORM := zynq
 
 
 BINARY   := kernel.elf
@@ -9,18 +9,19 @@ include config/$(TARGET)-config.mk
 
 
 CC=$(PREFIX)gcc
+#CC=clang
+CXX=clang++
 LD=$(PREFIX)gcc
 
 
-CFLAGS   := -std=c11 -O2 -ffreestanding -Isrc/include/ -Wall -Wno-unused -fdiagnostics-color=always $(TARGET_CFLAGS)
-ASFLAGS  := -Wall -fdiagnostics-color=always $(TARGET_ASFLAGS)
-LDFLAGS  := -Tlink/$(LDSCRIPT) -nostdlib $(TARGET_LDFLAGS)
+CFLAGS   := -std=c11 -g -O2 -ffreestanding -Isrc/include/ -Wall -Wno-unused -fdiagnostics-color=always $(TARGET_CFLAGS) -Wstrict-aliasing
+ASFLAGS  := -Wall -g -ffreestanding  -fdiagnostics-color=always $(TARGET_ASFLAGS)
+LDFLAGS  := -Wall -g -Tlink/$(LDSCRIPT) -nostdlib $(TARGET_LDFLAGS) -lgcc
 
 
 
 # - Generic sources - #
-SOURCES  := $(shell find src/arch/$(TARGET) -type f -name *.s)
-SOURCES  += $(shell find src/                    \
+SOURCES  := $(shell find src/                    \
                    -path src/arch     -prune -o  \
                    -path src/drivers  -prune -o  \
                    -path src/platform -prune -o  \
@@ -38,7 +39,10 @@ SOURCES  += $(shell find src/drivers -false      \
 
 
 # - Architecture-specific code - #
+SOURCES  += $(shell find src/arch/$(TARGET) -type f -name *.s)
 SOURCES  += $(shell find src/arch/$(TARGET) -type f -name *.c)
+SOURCES  += $(shell find src/arch/subarch/$(SUBARCH) -type f -name *.s)
+SOURCES  += $(shell find src/arch/subarch/$(SUBARCH) -type f -name *.c)
 
 
 OBJECTS  := $(patsubst %.s, %.o, \
@@ -55,7 +59,7 @@ $(PLATFORM_BINARY): $(BINARY)
 
 
 $(BINARY): $(OBJECTS)
-	@$(LD) $(sort $(OBJECTS)) -o $(BINARY) $(LDFLAGS) 
+	@$(LD) $(sort $(OBJECTS)) -o $(BINARY) $(LDFLAGS)
 	$(info LD $(OBJECTS))
 	$(info Built $(BINARY))
 
