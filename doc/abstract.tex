@@ -1,0 +1,98 @@
+\documentclass[a4paper,12pt]{refrep}
+\title{aa-kernel}
+\usepackage{color}
+\definecolor{light-gray}{gray}{0.95}
+\newcommand{\code}[1]{\colorbox{light-gray}{\texttt{#1}}}
+
+\begin{document}
+\chapter{\texttt{aa-kernel}}
+\code{aa-kernel} is an embedded operating system for 32 and 64-bit 
+ARM CPUs. The kernel consists of:
+\begin{itemize}
+\item A base set of subsystems and supporting code, 
+    located in \code{src/boot} and \code{src/kernel}.
+\item Architecture and platform-specific subsystems, 
+    located in \code{src/arch} and \code{src/platform}.
+\item Drivers not limited to any one architecture or platform, 
+    such as the SDHCI driver, located in \code{src/drivers}.
+\end{itemize}
+
+\subsection{Design Goals}
+Much of the work on \code{aa-kernel} was carried out in order 
+to support FPGA development 
+on Zynq systems. As a result, the Cortex A9 port is 
+currently the most well-supported variant in terms of 
+driver support and testing. 
+
+Physical testing for this port was carried out on the 
+Digilent Zybo board. The kernel is also capable of booting 
+on the aarch64 virt platform, the Integrator CP, and the 
+Raspberry Pi, though the Zynq and virt ports are the only 
+currently tested ports.
+
+\subsection{Boot Sequence}
+On boot, on-board firmware or an off-board JTAG command sequence 
+loads the kernel image into memory and, on a single core, 
+jumps to the \code{\_start} symbol, defined in 
+\code{src/arch/\{arch\}/start.s}. This \code{\_start} symbol 
+is an assembly function that sets up the stack pointer, 
+installs the base interrupt vectors, and calls the \code{init()} 
+function located in \code{src/boot/init.c}.
+\\
+\code{init()} executes architecture-specific 
+initialization functions (defined in the relevant \code{arch} 
+folders) 
+and initializes the buddy-block page allocator, slab allocator, 
+random allocator, thread subsystem and IRQ subsystem. It then runs
+\code{platform\_init()}, also defined in a specific \code{platform} 
+folder, enables IRQs, and finally runs \code{kmain()}.
+
+\newpage
+\subsection{Subsystems}
+{\bf IRQs {\bf \code{(src/kernel/irq.c)}}} \\
+IRQs refer to any interrupt generated externally, such as from hardware.
+The base IRQ handler structure is typically installed at the start of physical memory for ARM CPUs.
+\\
+\\
+{\bf Timers } \\
+Interrupt-driven timers enable scheduling events in time, allowing features such as preemptive multitasking.
+A preset timer IRQ is defined per-platform in \\ \code{src/include/platform/\{platform\}/irq\_num.h} \\ and installed during \code{platform\_init()} at boot.
+\\
+\\
+{\bf Buddy-Block Allocator {\bf \code{(src/kernel/bb\_alloc.c)}}} \\
+The buddy-block allocator is the base of all other allocators and allows allocating $2^n$ pages of physically contiguous, page-aligned blocks of memory. 
+\\
+\\
+{\bf Slab Allocator {\bf \code{(src/kernel/bb\_alloc.c)}}} \\
+In many portions of the kernel, data structures of a 
+static fixed size are repeatedly allocated during runtime. 
+The slab allocator dedicates a block of memory to contiguous 
+arrays of these structures for rapid allocation.
+\\
+\\
+{\bf Random Allocator {\bf \code{(src/kernel/malloc.c)}}} \\
+The random allocator defines \code{void *malloc(uint32\_t size)}, which allocates \code{size} bytes successfully or returns 0. 
+\\
+\\
+{\bf Block Devices{\bf \code{(src/kernel/block\_cache.c)}}}
+\\
+dank
+\\
+\\
+{\bf Console {\bf \code{(src/kernel/console.c)}}}
+\\
+shit
+\\
+\\
+{\bf Multitasking {\bf \code{(src/kernel/thread.c)}}}
+
+
+
+
+\subsection{Drivers}
+{\bf PL011 Serial Console {\bf \code{(src/drivers/serial/pl011.c)}}}
+{\bf PL390 Interrupt Controller {\bf \code{(src/drivers/serial/pl011.c)}}}
+{\bf SD Host Controller {\bf \code{(src/drivers/block/sdhci.c)}}}
+
+
+\end{document}
